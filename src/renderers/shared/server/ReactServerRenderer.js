@@ -286,7 +286,6 @@ function resolve(child, context) {
       var result = inst.componentWillMount();
       if (typeof result.then === 'function') {
         return result.then(() => {
-          console.log('async')
           if (queue.length) {
             var oldQueue = queue;
             var oldReplace = replace;
@@ -405,38 +404,6 @@ class ReactDOMServerRenderer {
     }
 
     return out;
-
-    var recursive = () => {
-      return new Promise((resolve, reject) => {
-        if (out.length < bytes) {
-          if (this.stack.length === 0) {
-            this.exhausted = true;
-            return resolve();
-          }
-
-          var promise = this.stack[this.stack.length - 1];
-          promise.then((frame) => {
-            while (frame.childIndex < frame.children.length) {
-              if (frame.childIndex >= frame.children.length) {
-                out += frame.footer;
-                this.stack.pop();
-                if (frame.tag === 'select') {
-                  this.currentSelectValue = null;
-                }
-                return;
-              }
-              var child = frame.children[frame.childIndex++];
-              out += this.render(child, frame.context);
-            }
-          }).then(() => {
-            process.nextTick(() => {
-              recursive().then(resolve).catch(reject);
-            });
-          }).catch(reject);
-        }
-      });
-    }
-    // return recursive().then(() => out);
   }
 
   render(child, context) {
