@@ -460,19 +460,19 @@ rimraf('build', () => {
   fs.mkdirSync(join('build', 'dist'));
 
   const tasks = [
-    Packaging.createFacebookWWWBuild,
-    Packaging.createReactNativeBuild,
+    // Packaging.createFacebookWWWBuild,
+    // Packaging.createReactNativeBuild,
   ];
   for (const bundle of Bundles.bundles) {
     tasks.push(
-      () => createBundle(bundle, UMD_DEV),
-      () => createBundle(bundle, UMD_PROD),
-      () => createBundle(bundle, NODE_DEV),
-      () => createBundle(bundle, NODE_PROD),
-      () => createBundle(bundle, FB_DEV),
-      () => createBundle(bundle, FB_PROD),
-      () => createBundle(bundle, RN_DEV),
-      () => createBundle(bundle, RN_PROD)
+      // () => createBundle(bundle, UMD_DEV),
+      // () => createBundle(bundle, UMD_PROD),
+      () => createBundle(bundle, NODE_DEV)
+      // () => createBundle(bundle, NODE_PROD),
+      // () => createBundle(bundle, FB_DEV),
+      // () => createBundle(bundle, FB_PROD),
+      // () => createBundle(bundle, RN_DEV),
+      // () => createBundle(bundle, RN_PROD)
     );
   }
   if (syncFbsource) {
