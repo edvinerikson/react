@@ -283,7 +283,50 @@ function resolve(child, context) {
       inst.state = initialState = null;
     }
     if (inst.componentWillMount) {
-      inst.componentWillMount();
+      var result = inst.componentWillMount();
+      if (typeof result.then === 'function') {
+        return result.then(() => {
+          console.log('async')
+          if (queue.length) {
+            var oldQueue = queue;
+            var oldReplace = replace;
+            queue = null;
+            replace = false;
+
+            if (oldReplace && oldQueue.length === 1) {
+              inst.state = oldQueue[0];
+            } else {
+              var nextState = oldReplace ? oldQueue[0] : inst.state;
+              var dontMutate = true;
+              for (var i = oldReplace ? 1 : 0; i < oldQueue.length; i++) {
+                var partial = oldQueue[i];
+                var partialState = typeof partial === 'function'
+                  ? partial.call(inst, nextState, child.props, publicContext)
+                  : partial;
+                if (partialState) {
+                  if (dontMutate) {
+                    dontMutate = false;
+                    nextState = Object.assign({}, nextState, partialState);
+                  } else {
+                    Object.assign(nextState, partialState);
+                  }
+                }
+              }
+              inst.state = nextState;
+            }
+          } else {
+            queue = null;
+          }
+          child = inst.render();
+
+          var childContext = inst.getChildContext && inst.getChildContext();
+          if (childContext) {
+            context = Object.assign({}, context, childContext);
+          }
+
+          return resolve(child, context);
+        });
+      }
       if (queue.length) {
         var oldQueue = queue;
         var oldReplace = replace;
@@ -328,12 +371,12 @@ function resolve(child, context) {
 class ReactDOMServerRenderer {
   constructor(element, makeStaticMarkup) {
     this.stack = [
-      {
+      Promise.resolve({
         children: [element],
         childIndex: 0,
         context: emptyObject,
         footer: '',
-      },
+      }),
     ];
     this.idCounter = 1;
     this.exhausted = false;
@@ -341,14 +384,14 @@ class ReactDOMServerRenderer {
     this.makeStaticMarkup = makeStaticMarkup;
   }
 
-  read(bytes) {
+  async read(bytes) {
     var out = '';
-    while (out.length < bytes) {
+    while(out.length < bytes) {
       if (this.stack.length === 0) {
         this.exhausted = true;
         break;
       }
-      var frame = this.stack[this.stack.length - 1];
+      var frame = await this.stack[this.stack.length - 1];
       if (frame.childIndex >= frame.children.length) {
         out += frame.footer;
         this.stack.pop();
@@ -360,7 +403,40 @@ class ReactDOMServerRenderer {
       var child = frame.children[frame.childIndex++];
       out += this.render(child, frame.context);
     }
+
     return out;
+
+    var recursive = () => {
+      return new Promise((resolve, reject) => {
+        if (out.length < bytes) {
+          if (this.stack.length === 0) {
+            this.exhausted = true;
+            return resolve();
+          }
+
+          var promise = this.stack[this.stack.length - 1];
+          promise.then((frame) => {
+            while (frame.childIndex < frame.children.length) {
+              if (frame.childIndex >= frame.children.length) {
+                out += frame.footer;
+                this.stack.pop();
+                if (frame.tag === 'select') {
+                  this.currentSelectValue = null;
+                }
+                return;
+              }
+              var child = frame.children[frame.childIndex++];
+              out += this.render(child, frame.context);
+            }
+          }).then(() => {
+            process.nextTick(() => {
+              recursive().then(resolve).catch(reject);
+            });
+          }).catch(reject);
+        }
+      });
+    }
+    // return recursive().then(() => out);
   }
 
   render(child, context) {
@@ -376,7 +452,19 @@ class ReactDOMServerRenderer {
         '<!-- /react-text -->'
       );
     } else {
-      ({child, context} = resolve(child, context));
+      var result = resolve(child, context);
+      if (typeof result.then === 'function') {
+        this.stack.push(result.then(({ child, context }) => {
+          return {
+            children: [child],
+            childIndex: 0,
+            context,
+            footer: ''
+          };
+        }));
+        return '';
+      }
+      ({child, context} = result);
       if (child === null || child === false) {
         return '<!-- react-empty: ' + this.idCounter++ + ' -->';
       } else {
@@ -658,13 +746,13 @@ class ReactDOMServerRenderer {
         }
       });
     }
-    this.stack.push({
+    this.stack.push(Promise.resolve({
       tag,
       children,
       childIndex: 0,
       context: context,
       footer: footer,
-    });
+    }));
     return out;
   }
 }
@@ -680,9 +768,9 @@ function renderToString(element) {
     'renderToString(): You must pass a valid ReactElement.',
   );
   var renderer = new ReactDOMServerRenderer(element, false);
-  var markup = renderer.read(Infinity);
-  markup = ReactMarkupChecksum.addChecksumToMarkup(markup);
-  return markup;
+  return renderer.read(Infinity).then((markup) => {
+    return ReactMarkupChecksum.addChecksumToMarkup(markup);
+  });
 }
 
 /**
