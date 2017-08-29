@@ -14,12 +14,10 @@
 var ReactDOMStringRenderer = require('ReactDOMStringRenderer');
 var ReactDOMNodeStreamRenderer = require('ReactDOMNodeStreamRenderer');
 var ReactVersion = require('ReactVersion');
-var ReactServerCache = require('ReactServerCache');
 
 require('ReactDOMInjection');
 
 module.exports = {
-  cache: ReactServerCache.NS,
   renderToStringWithCache: ReactDOMStringRenderer.renderToStringWithCache,
   renderToStaticMarkupWithCache: ReactDOMStringRenderer.renderToStaticMarkupWithCache,
   renderToString: ReactDOMStringRenderer.renderToString,

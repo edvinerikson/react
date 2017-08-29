@@ -11,8 +11,6 @@
 
 'use strict';
 
-const NS = Symbol('cache');
-
 const map = new WeakMap();
 
 function isCreatingCache(element) {
@@ -23,22 +21,16 @@ function setCreatingCache(element) {
   map.set(element, true);
 }
 
-function isCacheSubject(type) {
-  if (typeof type !== 'function') {
-    return false;
-  }
-  var ns = type[NS];
-  if (ns && typeof ns.genCacheKey === 'function') {
-    return true;
-  }
-
-  return false;
+function isCacheSubject(type, config) {
+  return config.has(type);
 }
 
-function getCacheKey(element, context) {
-  var ns = element.type[NS];
-  if (ns && typeof ns.genCacheKey === 'function') {
-    return ns.genCacheKey(element.props, context);
+function getCacheKey(element, context, config) {
+  if (element && element.type) {
+    var cacheConfig = config.get(element.type);
+    if (cacheConfig && typeof cacheConfig.genCacheKey === 'function') {
+      return cacheConfig.genCacheKey(element.props, context);
+    }
   }
 }
 
@@ -47,5 +39,4 @@ module.exports = {
   setCreatingCache,
   isCacheSubject,
   getCacheKey,
-  NS,
-}
+};

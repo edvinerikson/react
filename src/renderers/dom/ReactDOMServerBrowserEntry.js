@@ -12,14 +12,12 @@
 'use strict';
 
 var ReactDOMStringRenderer = require('ReactDOMStringRenderer');
-var ReactServerCache = require('ReactServerCache');
 var ReactVersion = require('ReactVersion');
 var invariant = require('fbjs/lib/invariant');
 
 require('ReactDOMInjection');
 
 module.exports = {
-  cache: ReactServerCache.NS,
   renderToStringWithCache: ReactDOMStringRenderer.renderToStringWithCache,
   renderToStaticMarkupWithCache: ReactDOMStringRenderer.renderToStaticMarkupWithCache,
   renderToString: ReactDOMStringRenderer.renderToString,

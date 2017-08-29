@@ -326,11 +326,7 @@ function validateRenderResult(child, type) {
   }
 }
 
-var NOT_CACHE_SUBJECT = 'NOT_CACHE_SUBJECT';
-var IS_CACHE_SUBJECT = 'IS_CACHE_SUBJECT';
-
 function resolve(child, context, cache) {
-  var cacheType = NOT_CACHE_SUBJECT;
 
   while (React.isValidElement(child)) {
     if (__DEV__) {
@@ -367,11 +363,10 @@ function resolve(child, context, cache) {
       },
     };
 
-    if (isCacheSubject(Component) && !isCreatingCache(child)) {
-      if (!cache.has(getCacheKey(child, publicContext))) {
+    if (isCacheSubject(Component, cache.config) && !isCreatingCache(child)) {
+      if (!cache.store.has(getCacheKey(child, publicContext, cache.config))) {
         setCreatingCache(child);
       }
-      cacheType = IS_CACHE_SUBJECT;
       break;
     }
 
@@ -465,7 +460,7 @@ function resolve(child, context, cache) {
 }
 
 class ReactDOMCachingServerRenderer {
-  constructor(element, makeStaticMarkup, cacheMap) {
+  constructor(element, makeStaticMarkup, cache) {
     var children = React.isValidElement(element) ? [element] : toArray(element);
     var topFrame = {
       isCacheFrame: false,
@@ -480,7 +475,7 @@ class ReactDOMCachingServerRenderer {
     if (__DEV__) {
       topFrame.debugElementStack = [];
     }
-    this.cache = cacheMap;
+    this.cache = cache;
     this.isCaching = false;
     this.stack = [topFrame];
     this.exhausted = false;
@@ -505,7 +500,7 @@ class ReactDOMCachingServerRenderer {
 
       if (frame.isCacheFrame) {
         out += cacheOut;
-        this.cache.set(frame.cacheKey, cacheOut);
+        this.cache.store.set(frame.cacheKey, cacheOut);
         cacheOut = '';
         this.isCaching = false;
         this.stack.pop();
@@ -559,9 +554,9 @@ class ReactDOMCachingServerRenderer {
       return escapeTextContentForBrowser(text);
     } else {
       ({child, context} = resolve(child, context, this.cache));
-      var cacheKey = getCacheKey(child, context);
-      if (this.cache.has(cacheKey)) {
-        return this.cache.get(cacheKey);
+      var cacheKey = getCacheKey(child, context, this.cache.config);
+      if (this.cache.store.has(cacheKey)) {
+        return this.cache.store.get(cacheKey);
       } else if (isCreatingCache(child)) {
         invariant(!this.isCaching, 'Nested caches are not supported 1');
         this.isCaching = true;
