@@ -12,14 +12,32 @@
 'use strict';
 
 var ReactDOMStringRenderer = require('ReactDOMStringRenderer');
+var ReactServerCache = require('ReactServerCache');
 var ReactVersion = require('ReactVersion');
 var invariant = require('fbjs/lib/invariant');
 
 require('ReactDOMInjection');
 
 module.exports = {
+  cache: ReactServerCache.NS,
+  renderToStringWithCache: ReactDOMStringRenderer.renderToStringWithCache,
+  renderToStaticMarkupWithCache: ReactDOMStringRenderer.renderToStaticMarkupWithCache,
   renderToString: ReactDOMStringRenderer.renderToString,
   renderToStaticMarkup: ReactDOMStringRenderer.renderToStaticMarkup,
+  renderToNodeStreamWithCache() {
+    invariant(
+      false,
+      'ReactDOMServer.renderToNodeStreamWithCache(): The streaming API is not available ' +
+        'in the browser. Use ReactDOMServer.renderToStringWithCache() instead.',
+    );
+  },
+  renderToStaticNodeStreamWithCache() {
+    invariant(
+      false,
+      'ReactDOMServer.renderToStaticNodeStreamWithCache(): The streaming API is not available ' +
+        'in the browser. Use ReactDOMServer.renderToStaticMarkupWithCache() instead.',
+    );
+  },  
   renderToNodeStream() {
     invariant(
       false,
